@@ -10,6 +10,53 @@
 	•	前端实现交互式选择题、场景对话模拟、情绪调节小组件等。
 	•	支持 离线备份 + 本地数据存储加密，保障用户隐私安全。
 
+flowchart LR
+    subgraph   User
+        User[用户]
+    end
+    subgraph   Application
+        App[App.tsx]
+        Header[Header.tsx]
+        Hero[Hero.tsx]
+        Features[Features.tsx]
+        HowItWorks[HowItWorks.tsx]
+        Testimonials[Testimonials.tsx]
+        Toolkit[Toolkit.tsx]
+        EmergencyKit[EmergencyKit.tsx]
+        PaymentPage[PaymentPage.tsx]
+        PaymentService[PaymentService.tsx]
+        StripePayment[StripePayment.tsx]
+        CrisisForm[CrisisForm.tsx]
+    end
+    subgraph   Server
+        Server[server/index.ts]
+    end
+    subgraph   Database
+        DB[数据库]
+    end
+    User -->|访问| App
+    App -->|渲染| Header
+    App -->|渲染| Hero
+    App -->|渲染| Features
+    App -->|渲染| HowItWorks
+    App -->|渲染| Testimonials
+    App -->|渲染| Toolkit
+    App -->|渲染| EmergencyKit
+    App -->|渲染| PaymentPage
+    App -->|渲染| PaymentService
+    App -->|渲染| StripePayment
+    App -->|渲染| CrisisForm
+    PaymentPage -->|调用| Server
+    Server -->|处理| DB
+    Server -->|返回| PaymentPage
+    PaymentService -->|调用| StripePayment
+    StripePayment -->|调用| Server
+    Server -->|处理| DB
+    Server -->|返回| StripePayment
+    StripePayment -->|返回| PaymentService
+    CrisisForm -->|调用| Server
+    Server -->|处理| DB
+    Server -->|返回| CrisisForm
 ⸻
 
 2. 核心功能

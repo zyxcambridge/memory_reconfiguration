@@ -1,37 +1,32 @@
-import React, { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
-import CrisisForm from './CrisisForm';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Hero = () => {
-  const [showCrisisForm, setShowCrisisForm] = useState(false);
-
   return (
-    <div className="relative pt-24 overflow-hidden">
-      <div className="container mx-auto px-4 pt-20 pb-16 text-center lg:pt-32">
-        <h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-slate-900 sm:text-7xl">
-          你不是孤立无援的个体
-          <span className="relative whitespace-nowrap text-blue-600">
-            <span className="relative">有权利、有工具、有出路</span>
-          </span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-slate-700">
-          专业的职场危机应对系统，帮助你在职场困境中找到最佳解决方案。
-        </p>
-        <div className="mt-10 flex justify-center gap-x-6">
-          <button
-            className="group inline-flex items-center justify-center rounded-full py-3 px-6 text-sm font-semibold focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-800 focus-visible:outline-blue-600"
-            onClick={() => setShowCrisisForm(!showCrisisForm)}
-          >
-            <span>启动危机应对模式</span>
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </button>
-        </div>
-        
-        {showCrisisForm && (
-          <div className="mt-12">
-            <CrisisForm />
+    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <div className="container mx-auto px-4 py-16 md:py-24">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            职场危机快速应对解决方案
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 text-blue-100">
+            提供专业的法律支持、心理辅导和行动指导，帮助您应对职场危机
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link
+              to="/payment"
+              className="px-8 py-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+            >
+              立即获取解决方案
+            </Link>
+            <button
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-8 py-4 bg-transparent border-2 border-white rounded-lg font-semibold hover:bg-white/10 transition-colors"
+            >
+              了解更多
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
