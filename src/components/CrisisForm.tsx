@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
@@ -19,10 +19,19 @@ interface StreamingResponse {
 const CrisisForm: React.FC = () => {
   const [situation, setSituation] = useState('');
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<CrisisResponse | null>(null);
+  const [streamingResponse, setStreamingResponse] = useState<StreamingResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const generateResponse = async (situation: string) => {
+  const generateStreamingResponse = async (situation: string) => {
     try {
+      setError(null);
+      setStreamingResponse({
+        script: '',
+        strategy: '',
+        actions: [],
+        isComplete: false
+      });
+      
       const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash" });
       
       const prompt = `
@@ -37,33 +46,81 @@ const CrisisForm: React.FC = () => {
         }
       `;
 
-      const result = await model.generateContent(prompt);
-      const responseText = await result.response.text();
+      // 创建流式响应
+      const result = await model.generateContentStream(prompt);
       
-      // 清理响应文本，去除可能的Markdown代码块标记
-      const cleanText = responseText
+      let accumulatedText = '';
+      
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        accumulatedText += chunkText;
+        
+        try {
+          // 尝试解析累积的文本，可能会在完整JSON形成前失败
+          const cleanText = accumulatedText
+            .replace(/```json/g, '')
+            .replace(/```/g, '')
+            .trim();
+          
+          // 尝试解析JSON，如果不完整会抛出错误
+          try {
+            const parsedResponse = JSON.parse(cleanText);
+            
+            // 更新流式响应状态
+            setStreamingResponse(prev => ({
+              script: parsedResponse.script || prev?.script || '',
+              strategy: parsedResponse.strategy || prev?.strategy || '',
+              actions: Array.isArray(parsedResponse.actions) ? parsedResponse.actions : prev?.actions || [],
+              isComplete: false
+            }));
+          } catch (parseError) {
+            // JSON解析错误，说明响应尚未完成，继续累积
+            // 尝试提取部分内容以显示进度
+            const scriptMatch = cleanText.match(/"script"\s*:\s*"([^"]*)"/i);
+            const strategyMatch = cleanText.match(/"strategy"\s*:\s*"([^"]*)"/i);
+            
+            setStreamingResponse(prev => ({
+              script: scriptMatch ? scriptMatch[1] : prev?.script || '',
+              strategy: strategyMatch ? strategyMatch[1] : prev?.strategy || '',
+              actions: prev?.actions || [],
+              isComplete: false
+            }));
+          }
+        } catch (e) {
+          // 忽略解析错误，继续累积文本
+        }
+      }
+      
+      // 流式响应完成，进行最终解析
+      const finalCleanText = accumulatedText
         .replace(/```json/g, '')
         .replace(/```/g, '')
         .trim();
       
       try {
-        const parsedResponse = JSON.parse(cleanText);
-        if (!parsedResponse.script || !parsedResponse.strategy || !parsedResponse.actions) {
+        const finalParsedResponse = JSON.parse(finalCleanText);
+        if (!finalParsedResponse.script || !finalParsedResponse.strategy || !finalParsedResponse.actions) {
           throw new Error('Invalid response format');
         }
         
-        return {
-          script: parsedResponse.script,
-          strategy: parsedResponse.strategy,
-          actions: Array.isArray(parsedResponse.actions) ? parsedResponse.actions : []
-        } as CrisisResponse;
+        // 设置最终完整响应
+        setStreamingResponse({
+          script: finalParsedResponse.script,
+          strategy: finalParsedResponse.strategy,
+          actions: Array.isArray(finalParsedResponse.actions) ? finalParsedResponse.actions : [],
+          isComplete: true
+        });
+        
+        return true;
       } catch (e) {
-        console.error('Error parsing response:', e, 'Response text:', cleanText);
-        throw new Error(`API返回了无效的JSON格式: ${cleanText}`);
+        console.error('Error parsing final response:', e, 'Response text:', finalCleanText);
+        setError(`API返回了无效的JSON格式: ${finalCleanText}`);
+        return false;
       }
     } catch (error) {
-      console.error('Error generating response:', error);
-      throw new Error(`生成响应失败: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Error generating streaming response:', error);
+      setError(`生成响应失败: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
     }
   };
 
@@ -71,8 +128,7 @@ const CrisisForm: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await generateResponse(situation);
-      setResponse(result);
+      await generateStreamingResponse(situation);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -106,27 +162,41 @@ const CrisisForm: React.FC = () => {
         </button>
       </form>
 
-      {response && (
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+      
+      {streamingResponse && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-semibold mb-4">应对方案</h3>
+          <h3 className="text-xl font-semibold mb-4">应对方案 {!streamingResponse.isComplete && <span className="text-sm text-blue-500 animate-pulse">生成中...</span>}</h3>
           
           <div className="mb-6">
             <h4 className="text-lg font-medium text-gray-900 mb-2">推荐话术</h4>
-            <p className="text-gray-700 whitespace-pre-line">{response.script}</p>
+            <p className="text-gray-700 whitespace-pre-line">
+              {streamingResponse.script || <span className="text-gray-400 animate-pulse">生成中...</span>}
+            </p>
           </div>
           
           <div className="mb-6">
             <h4 className="text-lg font-medium text-gray-900 mb-2">策略建议</h4>
-            <p className="text-gray-700">{response.strategy}</p>
+            <p className="text-gray-700">
+              {streamingResponse.strategy || <span className="text-gray-400 animate-pulse">生成中...</span>}
+            </p>
           </div>
           
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-2">行动步骤</h4>
-            <ul className="list-disc list-inside space-y-2">
-              {response.actions.map((action, index) => (
-                <li key={index} className="text-gray-700">{action}</li>
-              ))}
-            </ul>
+            {streamingResponse.actions.length > 0 ? (
+              <ul className="list-disc list-inside space-y-2">
+                {streamingResponse.actions.map((action, index) => (
+                  <li key={index} className="text-gray-700">{action}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-400 animate-pulse">生成中...</p>
+            )}
           </div>
         </div>
       )}
