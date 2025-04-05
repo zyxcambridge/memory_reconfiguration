@@ -16,7 +16,7 @@ const PaymentService: React.FC<PaymentServiceProps> = ({ onClose, onSuccess }) =
   const [errorMessage, setErrorMessage] = useState<string>('');
   
   // 产品价格
-  const productPrice = 299;
+  const productPrice = 0.01;
   
   const handlePaymentSuccess = () => {
     setPaymentStatus('success');

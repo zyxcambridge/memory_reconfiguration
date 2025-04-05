@@ -82,7 +82,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ onClose }) => {
               <li>心理支持资源包</li>
               <li>一对一行动计划制定</li>
             </ul>
-            <div className="mt-4 text-xl font-bold text-right">¥299.00</div>
+            <div className="mt-4 text-xl font-bold text-right">¥0.01</div>
           </div>
           
           <form onSubmit={handlePayment}>
@@ -147,7 +147,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ onClose }) => {
               disabled={paymentStatus === 'processing'}
               className={`w-full py-3 rounded-lg text-white font-medium ${paymentStatus === 'processing' ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition-colors`}
             >
-              {paymentStatus === 'processing' ? '处理中...' : '支付 ¥299.00'}
+              {paymentStatus === 'processing' ? '处理中...' : '支付 ¥0.01'}
             </button>
           </form>
           
