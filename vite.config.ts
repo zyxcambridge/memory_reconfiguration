@@ -5,7 +5,7 @@ import { resolve } from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/memory_reconfiguration/',
+  base: process.env.NODE_ENV === 'production' ? '/memory_reconfiguration/' : '/',
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
