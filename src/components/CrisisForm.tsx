@@ -21,6 +21,7 @@ const CrisisForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [streamingResponse, setStreamingResponse] = useState<StreamingResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showResults, setShowResults] = useState(false);
 
   const generateStreamingResponse = async (situation: string) => {
     try {
@@ -126,11 +127,17 @@ const CrisisForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!situation.trim()) {
+      setError('请输入有效的职场危机描述');
+      return;
+    }
     setLoading(true);
+    setShowResults(true);
     try {
       await generateStreamingResponse(situation);
     } catch (error) {
       console.error('Error:', error);
+      setError(`生成响应失败: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
     }
@@ -147,7 +154,7 @@ const CrisisForm: React.FC = () => {
             id="situation"
             value={situation}
             onChange={(e) => setSituation(e.target.value)}
-            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
             placeholder="例如：今天被HR突然告知要离职..."
           />
         </div>
@@ -168,7 +175,7 @@ const CrisisForm: React.FC = () => {
         </div>
       )}
       
-      {streamingResponse && (
+      {showResults && (
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-xl font-semibold mb-4">应对方案 {!streamingResponse.isComplete && <span className="text-sm text-blue-500 animate-pulse">生成中...</span>}</h3>
           

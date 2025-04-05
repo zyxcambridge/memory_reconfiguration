@@ -1,45 +1,46 @@
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
-import Stripe from 'stripe';
+import { OpenAI } from 'openai';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
-
-// 配置 CORS
-app.use(cors({
-  origin: ['http://localhost:5176', 'http://localhost:5175'],
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Accept'],
-  credentials: true
-}));
-
+app.use(cors());
 app.use(express.json());
 
-app.post('/api/create-payment', async (req, res) => {
-  try {
-    const { paymentMethodId, amount, currency } = req.body;
+const openai = new OpenAI({
+  baseURL: "https://models.inference.ai.azure.com",
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      payment_method: paymentMethodId,
-      confirm: true,
-      return_url: 'http://localhost:5176/payment-success',
+app.post('/api/openai', async (req, res) => {
+  try {
+    const { situation, model, systemPrompt } = req.body;
+    
+    const prompt = `你是一个职场危机应对专家。请根据以下情况生成法律、心理和行动三方面的建议：\n"${situation}"\n\n要求：\n1. 法律建议：3条具体可操作的法律保护措施\n2. 心理支持：3条缓解心理压力的方法\n3. 行动方案：3个立即执行的步骤\n\n请以JSON格式返回：{"legal": [], "psychological": [], "action": []}`;
+
+    const response = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" }
     });
 
-    res.json({ clientSecret: paymentIntent.client_secret });
+    if (response.choices?.[0]?.message?.content) {
+      res.json(JSON.parse(response.choices[0].message.content));
+    } else {
+      throw new Error('Invalid response format');
+    }
   } catch (error) {
-    console.error('Payment error:', error);
-    res.status(500).json({ message: '支付处理过程中出现错误' });
+    console.error('Server error:', error);
+    res.status(500).json({ error: 'API调用失败' });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-}); 
+  console.log(`Server running on port ${PORT}`);
+});
